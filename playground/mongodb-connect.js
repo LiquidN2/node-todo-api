@@ -1,3 +1,9 @@
+/** To start MongoDB server, do the followings:
+ * 1. Navigate to C:\Program Files\MongoDB\Server\4.0\bin
+ * 2. Start Powershell
+ * 3. Run command  .\mongod.exe --dbpath \Users\Hugh\mongo-data
+ */
+
 const {MongoClient, ObjectID} = require('mongodb');
 const obj = new ObjectID();
 
