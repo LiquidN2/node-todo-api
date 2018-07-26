@@ -21,7 +21,7 @@ app.post('/todos', (req, res) => {
         res.send(doc);
     }, err => {
         res.status(400).send(err);
-    })
+    });
 });
 
 app.post('/users', (req, res) => {
@@ -33,7 +33,7 @@ app.post('/users', (req, res) => {
         res.send(doc);
     }, err => {
         res.status(400).send(err);
-    })
+    });
 });
 
 app.listen(port, () => {
