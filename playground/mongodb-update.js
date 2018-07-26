@@ -26,25 +26,34 @@ MongoClient.connect(dbUrl, dbOptions, (err, client) => {
 
     const collectionName = 'Todos';
 
-    // deleteMany
-    // db.collection(collectionName).deleteMany({text: "Eat lunch"}).then(result => {
+    // db.collection(collectionName).findOneAndUpdate({
+    //     _id: new ObjectID("5b581a138c01525b9b5fcf14")
+    // }, {
+    //     /** must use mongoDB update operators
+    //      * see more at https://docs.mongodb.com/manual/reference/operator/update/
+    //     */
+    //     $set: {
+    //         completed: true
+    //     }
+    // }, {
+    //     returnOriginal: false
+    // }).then(result => {
     //     console.log(result);        
     // }, error => {
-    //     console.log(error);        
+    //     console.log(error);
     // });
 
-    // deleteOne
-    // db.collection(collectionName).deleteOne({text: "Go to the bank"}).then(result => {
-    //     console.log(result);        
-    // }, error => {
-    //     console.log(error);        
-    // });
-
-    // findOneAndDelete - delete and result the document 
-    db.collection(collectionName).findOneAndDelete({"completed": false}).then(result => {
-        console.log(result);
-    }, err => {
-        console.log(err);
+    db.collection("Users").findOneAndUpdate({
+        _id: new ObjectID("5b57c46fa8412d290816a611")
+    }, {
+        $set: { name: 'Josh' },
+        $inc: { age: 1 }
+    }, {
+        returnOriginal: false
+    }).then(result => {
+        console.log(result);        
+    }, error => {
+        console.log(error);        
     });
 
     client.close();

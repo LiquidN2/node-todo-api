@@ -1,7 +1,13 @@
-/** To start MongoDB server, do the followings:
+/** To START MongoDB server on local Windows machine, do the followings:
  * 1. Navigate to C:\Program Files\MongoDB\Server\4.0\bin
- * 2. Start Powershell
+ * 2. Start Powershell as Admin
  * 3. Run command  .\mongod.exe --dbpath \Users\Hugh\mongo-data
+ */
+
+/** To SHUTDOWN MongoDB server on local Windows machine, do the followings:
+ * 1. Navigate to C:\Program Files\MongoDB\Server\4.0\bin
+ * 2. Start Powershell as Admin
+ * 3. Run command  net stop MongoDB
  */
 
 const {MongoClient, ObjectID} = require('mongodb');
