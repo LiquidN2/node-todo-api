@@ -4,7 +4,7 @@ const {ObjectId} = Schema;
 
 
 const dbName = 'TodoApp';
-const dbUrl = `mongodb://localhost:27017/${dbName}`;
+const dbUrl = process.env.MONGODB_URI || `mongodb://localhost:27017/${dbName}`;
 const dbOptions = { useNewUrlParser: true };
 
 mongoose.Promise = global.Promise;

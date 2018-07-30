@@ -43,11 +43,11 @@ app.get('/todos/:id', (req, res) => {
     Todo.findById(id)
         .then(todo => {
             if(!todo) {
-                return res.status(400).send({
+                return res.status(404).send({
                     message: 'Unable to find doc matching requested id'
                 });
             }
-            
+
             res.status(200).send({todo});
         })
         .catch(err => res.status(400).send());

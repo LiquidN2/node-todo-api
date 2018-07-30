@@ -1,11 +1,18 @@
 const expect = require('expect');
 const request = require('supertest');
+const {ObjectID} = require('mongodb');
 
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
 
+const id = new ObjectID();
+const idString = id.toString();
+
 const todosTestData = [
-    {text: "First todo text"},
+    {
+        _id: id, 
+        text: "First todo text"
+    },
     {text: "Second todo text"}
 ];
 
@@ -90,3 +97,70 @@ describe('GET /todos', () => {
             });
     });
 });
+
+
+describe('GET /todos/:id', () => {
+    it('should get todo doc by id', done => {
+        request(app)
+            .get(`/todos/${idString}`)
+            .expect(200)
+            .expect(res => {
+                expect(res.body.todo._id).toBe(idString);
+            })
+            .end((err, res) => {
+                if (err) {
+                    return done(err);
+                }
+
+                Todo.findById(idString)
+                    .then(todo => {
+                        // expect(todo._id.toString()).toBe(idString);
+                        expect(todo).toInclude({_id: id});
+                        done();
+                    })
+                    .catch(err => done(err));
+            })
+    });
+
+    it('should respond 404 error and empty body when id is invalid', done => {
+        const invalidId = '1234';
+        request(app)
+            .get(`/todos/${invalidId}`)
+            .expect(404)
+            .expect(res => {
+                const numProp = Object.keys(res.body).length;
+                expect(numProp).toBe(0);
+            })
+            .end((err,res) => {
+                if (err) {
+                    return done(err);
+                }
+                done();
+            });
+    })
+
+    it('should respond 404 error and inform user when id is valid but not existing in collection', done => {
+        const randomId = new ObjectID();
+        const randomIdString = randomId.toString();
+        request(app)
+            .get(`/todos/${randomIdString}`)
+            .expect(404)
+            .expect(res => {
+                expect(res.body).toInclude({
+                    message: 'Unable to find doc matching requested id'
+                });
+            })
+            .end((err, res) => {
+                if (err) {
+                    return done(err);
+                }
+
+                Todo.findById(randomIdString)
+                    .then(todo => {
+                        expect(todo).toBe(null);
+                        done();
+                    })
+                    .catch(err => done(err));
+            });
+    })
+})
