@@ -6,14 +6,20 @@ const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
 
 const id = new ObjectID();
-const idString = id.toString();
+const idString = id.toHexString();
+const idC = new ObjectID();
+const idCString = idC.toHexString()
 
 const todosTestData = [
     {
         _id: id, 
         text: "First todo text"
-    },
-    {text: "Second todo text"}
+    },{
+        _id: idC,
+        text: "Second todo text",
+        complete: true,
+        completedAt: new Date().getTime()
+    }
 ];
 
 /** Before each test:
@@ -230,5 +236,122 @@ describe('DELETE /todos/:id', () => {
                     })
                     .catch(err => done(err));
             });
-    })
+    });
+});
+
+
+describe('PATCH /todos/:id', () => {
+    it('should update time todo item is completed', done => {
+        const body = {
+            text: 'This is an updated text',
+            completed: true
+        };
+
+        request(app)
+            .patch(`/todos/${id}`)
+            .send(body)
+            .expect(200)
+            .expect(res => {
+                expect(res.body.todo.text).toBe(body.text);
+                expect(res.body.todo.completed).toBe(true);
+                expect(res.body.todo.completedAt).toNotBe(null);
+            })
+            .end((err, res) => {
+                if (err) {
+                    return done(err);
+                }
+
+                Todo.findById(id)
+                    .then(todo => {
+                        expect(todo.text).toBe(body.text);
+                        expect(todo.completed).toBe(true);
+                        expect(todo.completedAt).toNotBe(null);
+                        done();
+                    })
+                    .catch(err => done(err));
+            });
+    });
+
+    it('should clear time when todo is not completed', done => {
+        const body = {
+            text: 'this is some random text',
+            completed: false
+        };
+
+        request(app)
+            .patch(`/todos/${idC}`)
+            .send(body)
+            .expect(200)
+            .expect(res => {
+                expect(res.body.todo.text).toBe(body.text);
+                expect(res.body.todo.completed).toBe(false);
+                expect(res.body.todo.completedAt).toBe(null);
+            })
+            .end((err, res) => {
+                if (err) {
+                    return done(err);
+                }
+
+                Todo.findById(idC)
+                    .then(todo => {
+                        expect(todo.text).toBe(body.text);
+                        expect(todo.completed).toBe(false);
+                        expect(todo.completedAt).toBe(null);
+                        done();
+                    })
+                    .catch(err => done(err));
+            });
+    });
+
+    it('should respond 404 and empty body when id is invalid', done => {
+        const invalidId = '1234';
+        const body = {
+            completed: true
+        };
+        
+        request(app)
+            .patch(`/todos/${invalidId}`)
+            .send(body)
+            .expect(404)
+            .expect(res => {
+                const numProp = Object.keys(res.body).length;
+                expect(numProp).toBe(0);
+            })
+            .end((err, res) => {
+                if(err) {
+                    return done(err);
+                }
+                done();
+            })
+    });
+
+    it('should respond 404 error and inform user when id is valid but not existing in collection', done => {
+        const randomId = new ObjectID();
+        const randomIdString = randomId.toString();
+        const body = {
+            completed: true
+        };
+        
+        request(app)
+            .patch(`/todos/${randomIdString}`)
+            .send(body)
+            .expect(404)
+            .expect(res => {
+                expect(res.body).toInclude({
+                    message: 'Unable to find doc matching requested id'
+                });
+            })
+            .end((err, res) => {
+                if(err) {
+                    return done(err);
+                }
+
+                Todo.findById(randomIdString)
+                    .then(todo => {
+                        expect(todo).toNotExist();
+                        done();
+                    })
+                    .catch(err => done(err));
+            });
+    });
 });
