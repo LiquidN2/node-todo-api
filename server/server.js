@@ -12,6 +12,18 @@ const port = process.env.PORT || 3000;
 // parsing JSON in the body of the quest
 app.use(bodyParser.json());
 
+app.post('/users', (req, res) => {
+    const user = new User({
+        email: req.body.email
+    });
+
+    user.save().then(doc => {
+        res.send(doc);
+    }, err => {
+        res.status(400).send(err);
+    });
+});
+
 app.post('/todos', (req, res) => {
     // console.log(req.body);
     const todo = new Todo({
@@ -27,15 +39,17 @@ app.post('/todos', (req, res) => {
 
 app.get('/todos', (req, res) => {
     Todo.find().then(todos => {
-        res.send({todos});
+        res.status(200).send({todos});
     }, err => {
         res.status(400).send(err);
     })
 });
 
 app.get('/todos/:id', (req, res) => {
+    // get the id
     const id = req.params.id;
 
+    // validate id -> not valid return 404
     if (!ObjectID.isValid(id)) {
         return res.status(404).send();
     }
@@ -54,16 +68,27 @@ app.get('/todos/:id', (req, res) => {
 
 });
 
-app.post('/users', (req, res) => {
-    const user = new User({
-        email: req.body.email
-    });
+app.delete('/todos/:id', (req, res) => {
+    // get the id
+    const id = req.params.id;
+    
+    // validate id -> not valid return 404
+    if(!ObjectID.isValid(id)) {
+        return res.status(404).send();
+    }
 
-    user.save().then(doc => {
-        res.send(doc);
-    }, err => {
-        res.status(400).send(err);
-    });
+    // check if doc exists in collection
+    Todo.findByIdAndRemove(id)
+        .then(todo => {
+            if(!todo) {
+                return res.status(404).send({
+                    message: 'Unable to find doc matching requested id'
+                });
+            }
+            res.status(200).send({todo});
+        })
+        .catch(err => res.status(400).send());
+
 });
 
 app.listen(port, () => {

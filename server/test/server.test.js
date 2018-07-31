@@ -157,10 +157,78 @@ describe('GET /todos/:id', () => {
 
                 Todo.findById(randomIdString)
                     .then(todo => {
-                        expect(todo).toBe(null);
+                        expect(todo).toNotExist();
                         done();
                     })
                     .catch(err => done(err));
             });
     })
 })
+
+
+describe('DELETE /todos/:id', () => {
+    it('should remove doc with id', done => {
+        request(app)
+            .delete(`/todos/${idString}`)
+            .expect(200)
+            .expect(res => {
+                expect(res.body.todo).toInclude({_id: id});
+            })
+            .end((err, res) => {
+                if(err) {
+                    return done(err);
+                }
+                
+                Todo.findById(idString)
+                    .then(todo => {
+                        if(todo) { 
+                            return done(err);
+                        }
+                        done();
+                    }).catch(err => done(err))
+            });
+    });
+
+    it('should respond 404 error and empty body when id is invalid', done => {
+        const invalidId = '1234';
+        request(app)
+            .delete(`/todos/${invalidId}`)
+            .expect(404)
+            .expect(res => {
+                const numProp = Object.keys(res.body).length;
+                expect(numProp).toBe(0);
+            })
+            .end((err, res) => {
+                if(err) {
+                    return done(err);
+                }
+                done();
+            })
+    });
+
+    it('should respond 404 error and inform user when id is valid but not existing in collection', done => {
+        const randomId = new ObjectID();
+        const randomIdString = randomId.toString();
+        
+        request(app)
+            .delete(`/todos/${randomIdString}`)
+            .expect(404)
+            .expect(res => {
+                expect(res.body).toInclude({
+                    message: 'Unable to find doc matching requested id'
+                });
+            })
+            .end((err, res) => {
+                if(err) {
+                    return done(err);
+                }
+
+                Todo.findById(randomIdString)
+                    .then(todo => {
+                        expect(todo).toNotExist();
+                        done();
+                    })
+                    .catch(err => done(err));
+            });
+    })
+});
