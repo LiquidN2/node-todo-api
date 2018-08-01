@@ -16,22 +16,22 @@ const port = process.env.PORT;
 app.use(bodyParser.json());
 
 app.post('/users', (req, res) => {
-    const user = new User({
-        email: req.body.email
-    });
+    const body = _.pick(req.body, ['email', 'password']);
+    
+    const user = new User(body);
 
-    user.save().then(doc => {
-        res.send(doc);
-    }, err => {
-        res.status(400).send(err);
-    });
+    user.save().then(() => {
+        return user.generateAuthToken();
+        // res.send(doc);
+    }).then(token => {
+        res.header('x-auth', token).send(user.toJSON());
+    }).catch(err => res.status(400).send());
 });
 
 app.post('/todos', (req, res) => {
-    // console.log(req.body);
-    const todo = new Todo({
-        text: req.body.text
-    });
+    const body = _.pick(req.body, ['text']);
+
+    const todo = new Todo(body);
 
     todo.save().then(doc => {
         res.send(doc);
