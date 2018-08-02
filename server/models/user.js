@@ -83,6 +83,7 @@ userSchema.statics.findByToken = function (token) {
     });
 };
 
+// hashing password before saving new users to DB
 userSchema.pre('save', function(next) {
     const user = this;
     

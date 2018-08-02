@@ -5,37 +5,14 @@ const {ObjectID} = require('mongodb');
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
 
-const timeOut = 3000;
-
-const id = new ObjectID();
-const idString = id.toHexString();
-const idC = new ObjectID();
-const idCString = idC.toHexString();
-
-const todosTestData = [
-    {
-        _id: id, 
-        text: "First todo text 1"
-    },{
-        _id: idC,
-        text: "Second todo text 2",
-        complete: true,
-        completedAt: new Date().getTime()
-    }
-];
-
+const {id, idString, idC, idCString, todosTestData, timeOut, populateTodos} = require('./seed/seed');
 
 /** Before each test:
  * 1. wipe Todo collection
  * 2. add dummy data
  */
 
-beforeEach(function(done) {
-    this.timeout(timeOut); // sets timeout longer as building indexing user email for unique value takes time
-    Todo.remove({})
-        .then(() => Todo.insertMany(todosTestData))
-        .then(() => done());
-});
+beforeEach(populateTodos);
 
 describe('POST /todos', () => {
     it('should create a new todo', done => {
