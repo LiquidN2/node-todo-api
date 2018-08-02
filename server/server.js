@@ -119,7 +119,7 @@ app.post('/users', (req, res) => {
         return user.generateAuthToken();
         // res.send(doc);
     }).then(token => {
-        res.header('x-auth', token).send(user.toJSON());
+        res.header('x-auth', token).send(user);
     }).catch(err => res.status(400).send());
 });
 

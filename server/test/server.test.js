@@ -4,19 +4,20 @@ const {ObjectID} = require('mongodb');
 
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
+const {User} = require('./../models/user');
 
-const {id, idString, idC, idCString, todosTestData, timeOut, populateTodos} = require('./seed/seed');
+const {seedTodos, populateTodos, seedUsers, populateUsers} = require('./seed/seed');
 
 /** Before each test:
  * 1. wipe Todo collection
  * 2. add dummy data
  */
-
+beforeEach(populateUsers);
 beforeEach(populateTodos);
 
 describe('POST /todos', () => {
     it('should create a new todo', done => {
-        const text = 'Test todo text';
+        const text = 'New todo text';
         
         request(app)
             .post('/todos')
@@ -54,7 +55,7 @@ describe('POST /todos', () => {
 
                 Todo.find()
                     .then(todos => {
-                        expect(todos.length).toBe(todosTestData.length);
+                        expect(todos.length).toBe(seedTodos.length);
                         done();
                     })
                     .catch(err => done(err));
@@ -70,7 +71,7 @@ describe('GET /todos', () => {
             .get('/todos')
             .expect(200)
             .expect(res => {
-                expect(res.body.todos.length).toBe(todosTestData.length);
+                expect(res.body.todos.length).toBe(seedTodos.length);
             })
             .end((err, res) => {
                 if (err) {
@@ -79,7 +80,7 @@ describe('GET /todos', () => {
 
                 Todo.find()
                     .then(todos => {
-                        expect(todos.length).toBe(todosTestData.length);
+                        expect(todos.length).toBe(seedTodos.length);
                         done();
                     })
                     .catch(err => done(err));
@@ -92,20 +93,20 @@ describe('GET /todos', () => {
 describe('GET /todos/:id', () => {
     it('should get todo doc by id', done => {
         request(app)
-            .get(`/todos/${idString}`)
+            .get(`/todos/${seedTodos[0]._id.toHexString()}`)
             .expect(200)
             .expect(res => {
-                expect(res.body.todo._id).toBe(idString);
+                expect(res.body.todo._id).toBe(seedTodos[0]._id.toHexString());
             })
             .end((err, res) => {
                 if (err) {
                     return done(err);
                 }
 
-                Todo.findById(idString)
+                Todo.findById(seedTodos[0]._id.toHexString())
                     .then(todo => {
-                        // expect(todo._id.toString()).toBe(idString);
-                        expect(todo).toInclude({_id: id});
+                        // expect(todo._id.toString()).toBe(seedTodos[0]._id.toHexString());
+                        expect(todo).toInclude({_id: seedTodos[0]._id});
                         done();
                     })
                     .catch(err => done(err));
@@ -118,8 +119,7 @@ describe('GET /todos/:id', () => {
             .get(`/todos/${invalidId}`)
             .expect(404)
             .expect(res => {
-                const numProp = Object.keys(res.body).length;
-                expect(numProp).toBe(0);
+                expect(res.body).toEqual({});
             })
             .end((err,res) => {
                 if (err) {
@@ -130,10 +130,10 @@ describe('GET /todos/:id', () => {
     })
 
     it('should respond 404 error and inform user when id is valid but not existing in collection', done => {
-        const randomId = new ObjectID();
-        const randomIdString = randomId.toString();
+        const randomId = new ObjectID().toHexString();
+    
         request(app)
-            .get(`/todos/${randomIdString}`)
+            .get(`/todos/${randomId}`)
             .expect(404)
             .expect(res => {
                 expect(res.body).toInclude({
@@ -145,7 +145,7 @@ describe('GET /todos/:id', () => {
                     return done(err);
                 }
 
-                Todo.findById(randomIdString)
+                Todo.findById(randomId)
                     .then(todo => {
                         expect(todo).toNotExist();
                         done();
@@ -159,17 +159,17 @@ describe('GET /todos/:id', () => {
 describe('DELETE /todos/:id', () => {
     it('should remove doc with id', done => {
         request(app)
-            .delete(`/todos/${idString}`)
+            .delete(`/todos/${seedTodos[0]._id.toHexString()}`)
             .expect(200)
             .expect(res => {
-                expect(res.body.todo).toInclude({_id: id});
+                expect(res.body.todo).toInclude({_id: seedTodos[0]._id});
             })
             .end((err, res) => {
                 if(err) {
                     return done(err);
                 }
                 
-                Todo.findById(idString)
+                Todo.findById(seedTodos[0]._id.toHexString())
                     .then(todo => {
                         if(todo) { 
                             return done(err);
@@ -185,8 +185,7 @@ describe('DELETE /todos/:id', () => {
             .delete(`/todos/${invalidId}`)
             .expect(404)
             .expect(res => {
-                const numProp = Object.keys(res.body).length;
-                expect(numProp).toBe(0);
+                expect(res.body).toEqual({});
             })
             .end((err, res) => {
                 if(err) {
@@ -197,11 +196,10 @@ describe('DELETE /todos/:id', () => {
     });
 
     it('should respond 404 error and inform user when id is valid but not existing in collection', done => {
-        const randomId = new ObjectID();
-        const randomIdString = randomId.toString();
+        const randomId = new ObjectID().toHexString();
         
         request(app)
-            .delete(`/todos/${randomIdString}`)
+            .delete(`/todos/${randomId}`)
             .expect(404)
             .expect(res => {
                 expect(res.body).toInclude({
@@ -213,7 +211,7 @@ describe('DELETE /todos/:id', () => {
                     return done(err);
                 }
 
-                Todo.findById(randomIdString)
+                Todo.findById(randomId)
                     .then(todo => {
                         expect(todo).toNotExist();
                         done();
@@ -232,7 +230,7 @@ describe('PATCH /todos/:id', () => {
         };
 
         request(app)
-            .patch(`/todos/${id}`)
+            .patch(`/todos/${seedTodos[0]._id.toHexString()}`)
             .send(body)
             .expect(200)
             .expect(res => {
@@ -245,7 +243,7 @@ describe('PATCH /todos/:id', () => {
                     return done(err);
                 }
 
-                Todo.findById(id)
+                Todo.findById(seedTodos[0]._id.toHexString())
                     .then(todo => {
                         expect(todo.text).toBe(body.text);
                         expect(todo.completed).toBe(true);
@@ -263,7 +261,7 @@ describe('PATCH /todos/:id', () => {
         };
 
         request(app)
-            .patch(`/todos/${idC}`)
+            .patch(`/todos/${seedTodos[1]._id.toHexString()}`)
             .send(body)
             .expect(200)
             .expect(res => {
@@ -276,7 +274,7 @@ describe('PATCH /todos/:id', () => {
                     return done(err);
                 }
 
-                Todo.findById(idC)
+                Todo.findById(seedTodos[1]._id.toHexString())
                     .then(todo => {
                         expect(todo.text).toBe(body.text);
                         expect(todo.completed).toBe(false);
@@ -298,8 +296,7 @@ describe('PATCH /todos/:id', () => {
             .send(body)
             .expect(404)
             .expect(res => {
-                const numProp = Object.keys(res.body).length;
-                expect(numProp).toBe(0);
+                expect(res.body).toEqual({});
             })
             .end((err, res) => {
                 if(err) {
@@ -310,14 +307,13 @@ describe('PATCH /todos/:id', () => {
     });
 
     it('should respond 404 error and inform user when id is valid but not existing in collection', done => {
-        const randomId = new ObjectID();
-        const randomIdString = randomId.toString();
+        const randomId = new ObjectID().toHexString();
         const body = {
             completed: true
         };
         
         request(app)
-            .patch(`/todos/${randomIdString}`)
+            .patch(`/todos/${randomId}`)
             .send(body)
             .expect(404)
             .expect(res => {
@@ -330,12 +326,91 @@ describe('PATCH /todos/:id', () => {
                     return done(err);
                 }
 
-                Todo.findById(randomIdString)
+                Todo.findById(randomId)
                     .then(todo => {
                         expect(todo).toNotExist();
                         done();
                     })
                     .catch(err => done(err));
             });
+    });
+});
+
+
+describe('GET /users/me', () => {
+    it('should return user if authenticate', done => {
+        const token = seedUsers[0].tokens[0].token;
+        request(app)
+            .get('/users/me')
+            .set('x-auth', token)
+            .expect(200)
+            .expect(res => {
+                expect(res.body._id).toBe(seedUsers[0]._id.toHexString());
+                expect(res.body.email).toBe(seedUsers[0].email);
+            })
+            .end(done);
+    });
+
+    it('should return 401 if not authenticated', done => {
+        request(app)
+            .get('/users/me')
+            .set('x-auth', 'dummytoken')
+            .expect(401)
+            .expect(res => {
+                expect(res.body).toEqual({});
+            })
+            .end(done);
+    });
+});
+
+describe('POST /users', () => {
+    it('should create a user', done => {
+        const email = 'johnhandcock@example.com';
+        const password = 'userThreePass';
+        
+        request(app)
+            .post('/users')
+            .send({email, password})
+            .expect(200)
+            .expect(res => {
+                expect(res.headers['x-auth']).toExist();
+                expect(res.body._id).toExist();
+                expect(res.body.email).toBe(email);
+            })
+            .end((err, res) => {
+                if(err) {
+                    return done(err);
+                }
+
+                User.findOne({email})
+                    .then(user => {
+                        expect(user).toExist();
+                        expect(user.password).toNotBe(password);
+                        done();
+                    })
+                    .catch(err => done(err));
+            });
+    });
+
+    it('should return validation erros if request invalid', done => {
+        const email = 'invalid@example';
+        const password = 'user';
+
+        request(app)
+            .post('/users')
+            .send({email, password})
+            .expect(400)
+            .end(done);
+    });
+
+    it('should not create user if email in use', done => {
+        const email = seedUsers[0].email;
+        const password = 'userOnePass!';
+
+        request(app)
+            .post('/users')
+            .send({email, password})
+            .expect(400)
+            .end(done);
     });
 });

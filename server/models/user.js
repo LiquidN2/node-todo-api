@@ -40,6 +40,7 @@ const userSchema = new Schema({
 });
 
 userSchema.methods.toJSON = function() {
+    // this will overwrite the default toJSON method of user schema
     const user = this;
     const userObj = user.toObject();
 
@@ -77,7 +78,7 @@ userSchema.statics.findByToken = function (token) {
     }
 
     return User.findOne({
-        _id: decoded._id,
+        '_id': decoded._id,
         'tokens.token': token,
         'tokens.access': 'auth'
     });
