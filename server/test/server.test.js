@@ -474,3 +474,40 @@ describe('POST /users/login', () => {
             });
     });
 });
+
+describe('DELETE /users/me/token', () => {
+    it('should remove token on logout', done => {
+        const token = seedUsers[0].tokens[0].token;
+
+        request(app)
+            .delete('/users/me/token')
+            .set('x-auth', token)
+            .expect(200)
+            .expect(res => {
+                expect(res.body).toEqual({});
+            })
+            .end((err, res) => {
+                if (err) {
+                    return done(err);
+                }
+
+                User.findById(seedUsers[0]._id)
+                    .then(user => {
+                        expect(user.tokens.length).toBe(0);
+                        done();
+                    })
+                    .catch(err => done(err));
+            });
+    });
+
+    it('should respond 401 if token invalid', done => {
+        request(app)
+            .delete('/users/me/token')
+            .set('x-auth', 'dommyroken')
+            .expect(401)
+            .expect(res => {
+                expect(res.body).toEqual({});
+            })
+            .end(done);
+    });
+});
