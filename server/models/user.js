@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 
 const mongoose = require('mongoose');
 const {Schema} = mongoose;
-const {ObjectId} = Schema;
+// const {ObjectId} = Schema;
 
 // define schima for 'User' collection
 const userSchema = new Schema({

@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const {Schema} = mongoose;
-const {ObjectId} = Schema;
 
 // define schema for 'todo' collection
 const todoSchema = new Schema({
@@ -17,6 +16,10 @@ const todoSchema = new Schema({
     completedAt: { 
         type: Number,
         default: null 
+    },
+    _creator: {
+        type: Schema.Types.ObjectId,
+        required: true
     }
 });
 

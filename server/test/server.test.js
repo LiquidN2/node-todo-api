@@ -6,26 +6,34 @@ const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
 const {User} = require('./../models/user');
 
+// seed data
 const {seedTodos, populateTodos, seedUsers, populateUsers} = require('./seed/seed');
 
 /** Before each test:
- * 1. wipe Todo collection
- * 2. add dummy data
+ * 1. wipe Todos & Users collection
+ * 2. add seed data
  */
 beforeEach(populateUsers);
 beforeEach(populateTodos);
 
 describe('POST /todos', () => {
-    it('should create a new todo', done => {
-        const text = 'New todo text';
-        
+    it('should create a new todo for autheticated user', done => {
+        const token = seedUsers[0].tokens[0].token;
+        // const text = 'New todo text by user one';
+        const body = {
+            text: 'New todo text by user one',
+            _creator: seedUsers[0]._id
+        }
+
         request(app)
             .post('/todos')
-            .send({text})
+            .set('x-auth', token)
+            .send(body)
             .expect(200) // check response status code
             .expect(res => {
                 // check if the server response body 
-                expect(res.body.text).toBe(text).toBeA('string');
+                expect(res.body.text).toBe(body.text).toBeA('string');
+                expect(res.body._creator).toBe(body._creator.toHexString()).toBeA('string');
             })
             .end((err, res) => {
                 if (err) {
@@ -33,10 +41,10 @@ describe('POST /todos', () => {
                 }
 
                 /** check if the document is added to the todo collection */
-                Todo.find({text})
+                Todo.find({"_creator": seedUsers[0]._id.toHexString()})
                     .then(todos => {
-                        expect(todos.length).toBe(1);
-                        expect(todos[0].text).toBe(text);
+                        expect(todos.length).toBe(2);
+                        expect(todos[1].text).toBe(body.text);
                         done();
                     })
                     .catch(err => done(err));
@@ -44,8 +52,11 @@ describe('POST /todos', () => {
     });
 
     it('should not create a new todo list with invalid body data', done => {
+        const token = seedUsers[0].tokens[0].token;
+
         request(app)
             .post('/todos')
+            .set('x-auth', token)
             .send({text: ''})
             .expect(400)
             .end((err, res) => {
@@ -61,31 +72,55 @@ describe('POST /todos', () => {
                     .catch(err => done(err));
             });
     });
+
+    it('should respond 401 if user not authenticated', done => {
+        request(app)
+            .post('/todos')
+            .set('x-auth', 'dummytoken')
+            .expect(401)
+            .expect(res => {
+                expect(res.body).toEqual({});
+            })
+            .end(done);
+    });
 });
 
 
 describe('GET /todos', () => {
-
-    it('should get all todos docs', done => {
+    it('should get all todos docs for authenticated user', done => {
+        const token = seedUsers[0].tokens[0].token;
+    
         request(app)
             .get('/todos')
+            .set('x-auth', token)
             .expect(200)
             .expect(res => {
-                expect(res.body.todos.length).toBe(seedTodos.length);
+                expect(res.body.todos.length).toBe(1);
             })
             .end((err, res) => {
                 if (err) {
                     return done(err);
                 }
 
-                Todo.find()
+                Todo.find({"_creator": seedUsers[0]._id.toHexString()})
                     .then(todos => {
-                        expect(todos.length).toBe(seedTodos.length);
+                        expect(todos.length).toBe(1);
                         done();
                     })
                     .catch(err => done(err));
             });
 
+    });
+
+    it('should respond 401 if user not authenticated', done => {
+        request(app)
+            .get('/todos')
+            .set('x-auth', 'dummytoken')
+            .expect(401)
+            .expect(res => {
+                expect(res.body).toEqual({});
+            })
+            .end(done);
     });
 });
 

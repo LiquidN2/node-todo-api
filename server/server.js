@@ -16,8 +16,11 @@ const port = process.env.PORT;
 // parsing JSON in the body of the quest
 app.use(bodyParser.json());
 
-app.post('/todos', (req, res) => {
-    const body = _.pick(req.body, ['text']);
+app.post('/todos', authenticate, (req, res) => {
+    const body = {
+        text: req.body.text,
+        _creator: req.user._id
+    };
 
     const todo = new Todo(body);
 
@@ -28,8 +31,8 @@ app.post('/todos', (req, res) => {
     });
 });
 
-app.get('/todos', (req, res) => {
-    Todo.find().then(todos => {
+app.get('/todos', authenticate, (req, res) => {
+    Todo.find({'_creator': req.user._id}).then(todos => {
         res.status(200).send({todos});
     }, err => {
         res.status(400).send(err);

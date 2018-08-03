@@ -4,18 +4,6 @@ const jwt = require('jsonwebtoken');
 const {Todo} = require('./../../models/todo');
 const {User} = require('./../../models/user');
 
-const seedTodos = [
-    {
-        _id: new ObjectID(),
-        text: "First todo text 1"
-    },{
-        _id: new ObjectID(),
-        text: "Second todo text 2",
-        complete: true,
-        completedAt: new Date().getTime()
-    }
-];
-
 const userOneId = new ObjectID();
 const userTwoId = new ObjectID();
 const seedUsers = [
@@ -33,6 +21,21 @@ const seedUsers = [
         password: 'userTwoPass'
     }
 ];
+
+const seedTodos = [
+    {
+        _id: new ObjectID(),
+        text: "First todo text 1",
+        _creator: userOneId
+    },{
+        _id: new ObjectID(),
+        text: "Second todo text 2",
+        complete: true,
+        completedAt: new Date().getTime(),
+        _creator: userTwoId
+    }
+];
+
 
 const timeOut = 2500;
 
