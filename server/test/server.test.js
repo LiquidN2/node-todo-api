@@ -127,48 +127,51 @@ describe('GET /todos', () => {
 
 describe('GET /todos/:id', () => {
     it('should get todo doc by id', done => {
+        const token = seedUsers[0].tokens[0].token;
         request(app)
             .get(`/todos/${seedTodos[0]._id.toHexString()}`)
+            .set('x-auth', token)
             .expect(200)
             .expect(res => {
                 expect(res.body.todo._id).toBe(seedTodos[0]._id.toHexString());
+                expect(res.body.todo._creator).toBe(seedUsers[0]._id.toHexString());
             })
             .end((err, res) => {
                 if (err) {
                     return done(err);
                 }
 
-                Todo.findById(seedTodos[0]._id.toHexString())
-                    .then(todo => {
-                        // expect(todo._id.toString()).toBe(seedTodos[0]._id.toHexString());
-                        expect(todo).toInclude({_id: seedTodos[0]._id});
-                        done();
-                    })
-                    .catch(err => done(err));
+                Todo.findOne({
+                    _id: seedTodos[0]._id.toHexString(),
+                    _creator: seedUsers[0]._id.toHexString()
+                }).then(todo => {
+                    expect(todo).toExist();
+                    done();
+                }).catch(err => done(err));
             })
     });
 
     it('should respond 404 error and empty body when id is invalid', done => {
         const invalidId = '1234';
+        const token = seedUsers[0].tokens[0].token;
         request(app)
             .get(`/todos/${invalidId}`)
+            .set('x-auth', token)
             .expect(404)
             .expect(res => {
                 expect(res.body).toEqual({});
             })
-            .end((err,res) => {
-                if (err) {
-                    return done(err);
-                }
-                done();
-            });
-    })
+            .end(done);
+    });
 
-    it('should respond 404 error and inform user when id is valid but not existing in collection', done => {
-        const randomId = new ObjectID().toHexString();
-    
+    it('should respond 404 error when one authenticated user attempting to get todo of another user', done => {
+        const tokenOne = seedUsers[0].tokens[0].token;
+        // const randomId = new ObjectID().toHexString();
+        const todoIdTwo = seedTodos[1]._id.toHexString();
+
         request(app)
-            .get(`/todos/${randomId}`)
+            .get(`/todos/${todoIdTwo}`)
+            .set('x-auth', tokenOne)
             .expect(404)
             .expect(res => {
                 expect(res.body).toInclude({
@@ -180,61 +183,78 @@ describe('GET /todos/:id', () => {
                     return done(err);
                 }
 
-                Todo.findById(randomId)
-                    .then(todo => {
-                        expect(todo).toNotExist();
-                        done();
-                    })
-                    .catch(err => done(err));
+                Todo.findOne({
+                    '_id': todoIdTwo,
+                    '_creator': seedUsers[0]._id.toHexString()
+                }).then(todo => {
+                    expect(todo).toNotExist();
+                    done();
+                }).catch(err => done(err));
             });
-    })
-})
+    });
+
+    it('should respond 401 if user not authenticated', done => {
+        request(app)
+            .get(`/todos/${seedTodos[0]._id.toHexString()}`)
+            .set('x-auth', 'dummytoken')
+            .expect(401)
+            .expect(res => {
+                expect(res.body).toEqual({});
+            })
+            .end(done);
+    });
+});
 
 
 describe('DELETE /todos/:id', () => {
     it('should remove doc with id', done => {
+        const token = seedUsers[0].tokens[0].token;
+
         request(app)
             .delete(`/todos/${seedTodos[0]._id.toHexString()}`)
+            .set('x-auth', token)
             .expect(200)
             .expect(res => {
-                expect(res.body.todo).toInclude({_id: seedTodos[0]._id});
+                expect(res.body.todo._id).toBe(seedTodos[0]._id.toHexString());
+                expect(res.body.todo._creator).toBe(seedUsers[0]._id.toHexString());
             })
             .end((err, res) => {
                 if(err) {
                     return done(err);
                 }
                 
-                Todo.findById(seedTodos[0]._id.toHexString())
-                    .then(todo => {
-                        if(todo) { 
-                            return done(err);
-                        }
-                        done();
-                    }).catch(err => done(err))
+                Todo.findOne({
+                    _id: seedTodos[0]._id.toHexString(),
+                    _creator: seedUsers[0]._id.toHexString()
+                }).then(todo => {
+                    expect(todo).toNotExist();    
+                    done();
+                }).catch(err => done(err));
             });
     });
 
     it('should respond 404 error and empty body when id is invalid', done => {
+        const token = seedUsers[0].tokens[0].token;
         const invalidId = '1234';
+
         request(app)
             .delete(`/todos/${invalidId}`)
+            .set('x-auth', token)
             .expect(404)
             .expect(res => {
                 expect(res.body).toEqual({});
             })
-            .end((err, res) => {
-                if(err) {
-                    return done(err);
-                }
-                done();
-            })
+            .end(done);
     });
 
-    it('should respond 404 error and inform user when id is valid but not existing in collection', done => {
-        const randomId = new ObjectID().toHexString();
+    it('should respond 404 error when one authenticated user attempting to delete todo of another user', done => {
+        const tokenOne = seedUsers[0].tokens[0].token;
+        // const randomId = new ObjectID().toHexString();
+        const todoIdTwo = seedTodos[1]._id.toHexString();
         
         request(app)
-            .delete(`/todos/${randomId}`)
+            .delete(`/todos/${todoIdTwo}`)
+            .set('x-auth', tokenOne)
             .expect(404)
             .expect(res => {
                 expect(res.body).toInclude({
@@ -246,19 +266,32 @@ describe('DELETE /todos/:id', () => {
                     return done(err);
                 }
 
-                Todo.findById(randomId)
-                    .then(todo => {
-                        expect(todo).toNotExist();
-                        done();
-                    })
-                    .catch(err => done(err));
+                Todo.findOne({
+                    _id: todoIdTwo,
+                    _creator: seedUsers[0]._id.toHexString()
+                }).then(todo => {
+                    expect(todo).toNotExist();    
+                    done();
+                }).catch(err => done(err));
             });
+    });
+
+    it('should respond 401 if user not authenticated', done => {
+        request(app)
+            .delete(`/todos/${seedTodos[0]._id.toHexString()}`)
+            .set('x-auth', 'dummytoken')
+            .expect(401)
+            .expect(res => {
+                expect(res.body).toEqual({});
+            })
+            .end(done);
     });
 });
 
 
 describe('PATCH /todos/:id', () => {
     it('should update time todo item is completed', done => {
+        const token = seedUsers[0].tokens[0].token;
         const body = {
             text: 'This is an updated text',
             completed: true
@@ -266,30 +299,34 @@ describe('PATCH /todos/:id', () => {
 
         request(app)
             .patch(`/todos/${seedTodos[0]._id.toHexString()}`)
+            .set('x-auth', token)
             .send(body)
             .expect(200)
             .expect(res => {
                 expect(res.body.todo.text).toBe(body.text);
                 expect(res.body.todo.completed).toBe(true);
                 expect(res.body.todo.completedAt).toNotBe(null);
+                expect(res.body.todo._creator).toBe(seedUsers[0]._id.toHexString());
             })
             .end((err, res) => {
                 if (err) {
                     return done(err);
                 }
 
-                Todo.findById(seedTodos[0]._id.toHexString())
-                    .then(todo => {
-                        expect(todo.text).toBe(body.text);
-                        expect(todo.completed).toBe(true);
-                        expect(todo.completedAt).toNotBe(null);
-                        done();
-                    })
-                    .catch(err => done(err));
+                Todo.findOne({
+                    _id: seedTodos[0]._id.toHexString(),
+                    _creator: seedUsers[0]._id.toHexString()
+                }).then(todo => {
+                    expect(todo.text).toBe(body.text);
+                    expect(todo.completed).toBe(true);
+                    expect(todo.completedAt).toNotBe(null);
+                    done();
+                }).catch(err => done(err));
             });
     });
 
     it('should clear time when todo is not completed', done => {
+        const token = seedUsers[1].tokens[0].token;
         const body = {
             text: 'this is some random text',
             completed: false
@@ -297,30 +334,34 @@ describe('PATCH /todos/:id', () => {
 
         request(app)
             .patch(`/todos/${seedTodos[1]._id.toHexString()}`)
+            .set('x-auth', token)
             .send(body)
             .expect(200)
             .expect(res => {
                 expect(res.body.todo.text).toBe(body.text);
                 expect(res.body.todo.completed).toBe(false);
                 expect(res.body.todo.completedAt).toBe(null);
+                expect(res.body.todo._creator).toBe(seedUsers[1]._id.toHexString());
             })
             .end((err, res) => {
                 if (err) {
                     return done(err);
                 }
 
-                Todo.findById(seedTodos[1]._id.toHexString())
-                    .then(todo => {
-                        expect(todo.text).toBe(body.text);
-                        expect(todo.completed).toBe(false);
-                        expect(todo.completedAt).toBe(null);
-                        done();
-                    })
-                    .catch(err => done(err));
+                Todo.findOne({
+                    _id: seedTodos[1]._id.toHexString(),
+                    _creator: seedUsers[1]._id.toHexString()
+                }).then(todo => {
+                    expect(todo.text).toBe(body.text);
+                    expect(todo.completed).toBe(false);
+                    expect(todo.completedAt).toBe(null);
+                    done();
+                }).catch(err => done(err));
             });
     });
 
     it('should respond 404 and empty body when id is invalid', done => {
+        const token = seedUsers[0].tokens[0].token;
         const invalidId = '1234';
         const body = {
             completed: true
@@ -328,27 +369,26 @@ describe('PATCH /todos/:id', () => {
         
         request(app)
             .patch(`/todos/${invalidId}`)
+            .set('x-auth', token)
             .send(body)
             .expect(404)
             .expect(res => {
                 expect(res.body).toEqual({});
             })
-            .end((err, res) => {
-                if(err) {
-                    return done(err);
-                }
-                done();
-            })
+            .end(done);
     });
 
-    it('should respond 404 error and inform user when id is valid but not existing in collection', done => {
-        const randomId = new ObjectID().toHexString();
+    it('should respond 404 error when authenticated user trying to patch todo of another user', done => {
+        const tokenOne = seedUsers[0].tokens[0].token;
+        // const randomId = new ObjectID().toHexString();
+        const todoIdTwo = seedTodos[1]._id.toHexString();
         const body = {
-            completed: true
+            completed: false
         };
         
         request(app)
-            .patch(`/todos/${randomId}`)
+            .patch(`/todos/${todoIdTwo}`)
+            .set('x-auth', tokenOne)
             .send(body)
             .expect(404)
             .expect(res => {
@@ -361,13 +401,25 @@ describe('PATCH /todos/:id', () => {
                     return done(err);
                 }
 
-                Todo.findById(randomId)
-                    .then(todo => {
-                        expect(todo).toNotExist();
-                        done();
-                    })
-                    .catch(err => done(err));
+                Todo.findOne({
+                    _id: todoIdTwo,
+                    _creator: seedUsers[0]._id.toHexString()
+                }).then(todo => {
+                    expect(todo).toNotExist();    
+                    done();
+                }).catch(err => done(err));
             });
+    });
+
+    it('should respond 401 if user not authenticated', done => {
+        request(app)
+            .patch(`/todos/${seedTodos[0]._id.toHexString()}`)
+            .set('x-auth', 'dummytoken')
+            .expect(401)
+            .expect(res => {
+                expect(res.body).toEqual({});
+            })
+            .end(done);
     });
 });
 
@@ -451,6 +503,7 @@ describe('POST /users', () => {
     });
 });
 
+
 describe('POST /users/login', () => {
     it('should login user and return auth token', done => {
         const email = seedUsers[1].email;
@@ -509,6 +562,7 @@ describe('POST /users/login', () => {
             });
     });
 });
+
 
 describe('DELETE /users/me/token', () => {
     it('should remove token on logout', done => {
