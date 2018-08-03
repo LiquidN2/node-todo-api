@@ -39,7 +39,7 @@ app.get('/todos', authenticate, (req, res) => {
     })
 });
 
-app.get('/todos/:id', (req, res) => {
+app.get('/todos/:id', authenticate, (req, res) => {
     // get the id
     const id = req.params.id;
 
@@ -48,21 +48,22 @@ app.get('/todos/:id', (req, res) => {
         return res.status(404).send();
     }
 
-    Todo.findById(id)
-        .then(todo => {
-            if(!todo) {
-                return res.status(404).send({
-                    message: 'Unable to find doc matching requested id'
-                });
-            }
+    Todo.findOne({
+        '_id': id,
+        '_creator': req.user._id
+    }).then(todo => {
+        if(!todo) {
+            return res.status(404).send({
+                message: 'Unable to find doc matching requested id'
+            });
+        }
 
-            res.status(200).send({todo});
-        })
-        .catch(err => res.status(400).send());
+        res.status(200).send({todo});
+    }).catch(err => res.status(400).send());
 
 });
 
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', authenticate, (req, res) => {
     // get the id
     const id = req.params.id;
     
@@ -72,20 +73,21 @@ app.delete('/todos/:id', (req, res) => {
     }
 
     // check if doc exists in collection
-    Todo.findByIdAndRemove(id)
-        .then(todo => {
-            if(!todo) {
-                return res.status(404).send({
-                    message: 'Unable to find doc matching requested id'
-                });
-            }
-            res.status(200).send({todo});
-        })
-        .catch(err => res.status(400).send());
+    Todo.findOneAndRemove({
+        '_id': id,
+        '_creator': req.user._id
+    }).then(todo => {
+        if(!todo) {
+            return res.status(404).send({
+                message: 'Unable to find doc matching requested id'
+            });
+        }
+        res.status(200).send({todo});
+    }).catch(err => res.status(400).send());
 
 });
 
-app.patch('/todos/:id', (req, res) => {
+app.patch('/todos/:id', authenticate, (req, res) => {
     const id = req.params.id;
     const body = _.pick(req.body, ['text', 'completed']); // return a new body obj with only 'text' and 'completed' 
     
@@ -100,17 +102,22 @@ app.patch('/todos/:id', (req, res) => {
         body.completedAt = null;
     }
 
-    Todo.findByIdAndUpdate(id, {$set: body}, {new: true})
-        .then(todo => {
-            if(!todo) {
-                return res.status(404).send({
-                    message: 'Unable to find doc matching requested id'
-                });
-            }
+    const condition = {
+        '_id': id,
+        '_creator': req.user._id
+    };
+    const update = { $set: body };
+    const options = { new: true }; 
 
-            res.status(200).send({todo});
-        })
-        .catch(err => res.status(400).send());
+    Todo.findOneAndUpdate(condition, update, options).then(todo => {
+        if(!todo) {
+            return res.status(404).send({
+                message: 'Unable to find doc matching requested id'
+            });
+        }
+
+        res.status(200).send({todo});
+    }).catch(err => res.status(400).send());
 });
 
 app.post('/users', (req, res) => {

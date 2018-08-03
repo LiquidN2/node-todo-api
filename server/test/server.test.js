@@ -468,10 +468,10 @@ describe('POST /users/login', () => {
                 if(err) {
                     return done(err);
                 }
-
+                // assert the newly added token in DB is same as the res header
                 User.findById(seedUsers[1]._id)
                     .then(user => {
-                        expect(user.tokens[0]).toInclude({
+                        expect(user.tokens[1]).toInclude({
                             access: 'auth',
                             token: res.headers['x-auth']
                         });
@@ -502,7 +502,7 @@ describe('POST /users/login', () => {
                 // assent no tokens injected to DB
                 User.findById(seedUsers[1]._id)
                     .then(user => {
-                        expect(user.tokens.length).toBe(0);
+                        expect(user.tokens.length).toBe(1);
                         done();
                     })
                     .catch(err => done(err));
