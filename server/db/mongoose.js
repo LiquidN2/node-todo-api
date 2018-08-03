@@ -11,7 +11,7 @@ mongoose.Promise = global.Promise;
 
 // mongoose.connect(dbUrl, dbOptions);
 mongoose.connect(dbUrl, dbOptions).then(() => {
-    console.log('Connected to MongoDB server', process.env.MONGODB_URI);
+    console.log('Connected to MongoDB server');
 }, error => {
     console.log(error.message);
 });

@@ -11,6 +11,7 @@ const {User} = require('./models/user');
 const {authenticate} = require('./middleware/authenticate');
 
 const app = express();
+const env = process.env.NODE_ENV || 'development';
 const port = process.env.PORT;
 
 // parsing JSON in the body of the quest
@@ -163,6 +164,7 @@ app.delete('/users/me/token', authenticate, (req, res) => {
 });
 
 app.listen(port, () => {
+    console.log(`***** ${env.toUpperCase()} *****`);
     console.log('Started on port', port);
 });
 
