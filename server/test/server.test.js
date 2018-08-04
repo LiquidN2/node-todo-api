@@ -32,8 +32,8 @@ describe('POST /todos', () => {
             .expect(200) // check response status code
             .expect(res => {
                 // check if the server response body 
-                expect(res.body.text).toBe(body.text).toBeA('string');
-                expect(res.body._creator).toBe(body._creator.toHexString()).toBeA('string');
+                expect(res.body.text).toBe(body.text);
+                expect(res.body._creator).toBe(body._creator.toHexString());
             })
             .end((err, res) => {
                 if (err) {
@@ -145,7 +145,7 @@ describe('GET /todos/:id', () => {
                     _id: seedTodos[0]._id.toHexString(),
                     _creator: seedUsers[0]._id.toHexString()
                 }).then(todo => {
-                    expect(todo).toExist();
+                    expect(todo).toBeTruthy();
                     done();
                 }).catch(err => done(err));
             })
@@ -174,9 +174,7 @@ describe('GET /todos/:id', () => {
             .set('x-auth', tokenOne)
             .expect(404)
             .expect(res => {
-                expect(res.body).toInclude({
-                    message: 'Unable to find doc matching requested id'
-                });
+                expect(res.body.message).toBe('Unable to find doc matching requested id');
             })
             .end((err, res) => {
                 if (err) {
@@ -187,7 +185,7 @@ describe('GET /todos/:id', () => {
                     '_id': todoIdTwo,
                     '_creator': seedUsers[0]._id.toHexString()
                 }).then(todo => {
-                    expect(todo).toNotExist();
+                    expect(todo).toBeFalsy();
                     done();
                 }).catch(err => done(err));
             });
@@ -227,7 +225,7 @@ describe('DELETE /todos/:id', () => {
                     _id: seedTodos[0]._id.toHexString(),
                     _creator: seedUsers[0]._id.toHexString()
                 }).then(todo => {
-                    expect(todo).toNotExist();    
+                    expect(todo).toBeFalsy();    
                     done();
                 }).catch(err => done(err));
             });
@@ -257,9 +255,7 @@ describe('DELETE /todos/:id', () => {
             .set('x-auth', tokenOne)
             .expect(404)
             .expect(res => {
-                expect(res.body).toInclude({
-                    message: 'Unable to find doc matching requested id'
-                });
+                expect(res.body.message).toBe('Unable to find doc matching requested id');
             })
             .end((err, res) => {
                 if(err) {
@@ -270,7 +266,7 @@ describe('DELETE /todos/:id', () => {
                     _id: todoIdTwo,
                     _creator: seedUsers[0]._id.toHexString()
                 }).then(todo => {
-                    expect(todo).toNotExist();    
+                    expect(todo).toBeFalsy();    
                     done();
                 }).catch(err => done(err));
             });
@@ -305,7 +301,7 @@ describe('PATCH /todos/:id', () => {
             .expect(res => {
                 expect(res.body.todo.text).toBe(body.text);
                 expect(res.body.todo.completed).toBe(true);
-                expect(res.body.todo.completedAt).toNotBe(null);
+                expect(typeof res.body.todo.completedAt).toBe('number');
                 expect(res.body.todo._creator).toBe(seedUsers[0]._id.toHexString());
             })
             .end((err, res) => {
@@ -319,7 +315,7 @@ describe('PATCH /todos/:id', () => {
                 }).then(todo => {
                     expect(todo.text).toBe(body.text);
                     expect(todo.completed).toBe(true);
-                    expect(todo.completedAt).toNotBe(null);
+                    expect(typeof res.body.todo.completedAt).toBe('number');
                     done();
                 }).catch(err => done(err));
             });
@@ -392,9 +388,7 @@ describe('PATCH /todos/:id', () => {
             .send(body)
             .expect(404)
             .expect(res => {
-                expect(res.body).toInclude({
-                    message: 'Unable to find doc matching requested id'
-                });
+                expect(res.body.message).toBe('Unable to find doc matching requested id');
             })
             .end((err, res) => {
                 if(err) {
@@ -405,7 +399,7 @@ describe('PATCH /todos/:id', () => {
                     _id: todoIdTwo,
                     _creator: seedUsers[0]._id.toHexString()
                 }).then(todo => {
-                    expect(todo).toNotExist();    
+                    expect(todo).toBeFalsy();    
                     done();
                 }).catch(err => done(err));
             });
@@ -461,8 +455,8 @@ describe('POST /users', () => {
             .send({email, password})
             .expect(200)
             .expect(res => {
-                expect(res.headers['x-auth']).toExist();
-                expect(res.body._id).toExist();
+                expect(res.headers['x-auth']).toBeTruthy();
+                expect(res.body._id).toBeTruthy();
                 expect(res.body.email).toBe(email);
             })
             .end((err, res) => {
@@ -472,8 +466,8 @@ describe('POST /users', () => {
 
                 User.findOne({email})
                     .then(user => {
-                        expect(user).toExist();
-                        expect(user.password).toNotBe(password);
+                        expect(user).toBeTruthy();
+                        expect(user.password).not.toBe(password);
                         done();
                     })
                     .catch(err => done(err));
@@ -514,7 +508,7 @@ describe('POST /users/login', () => {
             .send({email, password})
             .expect(200)
             .expect(res => {
-                expect(res.headers['x-auth']).toExist();
+                expect(res.headers['x-auth']).toBeTruthy();
                 expect(res.body.email).toBe(email)
             })
             .end((err, res) => {
@@ -524,10 +518,8 @@ describe('POST /users/login', () => {
                 // assert the newly added token in DB is same as the res header
                 User.findById(seedUsers[1]._id)
                     .then(user => {
-                        expect(user.tokens[1]).toInclude({
-                            access: 'auth',
-                            token: res.headers['x-auth']
-                        });
+                        expect(user.tokens[1].access).toBe('auth');
+                        expect(user.tokens[1].token).toBe(res.headers['x-auth']);
                         done();
                     })
                     .catch(err => done(err));
@@ -544,7 +536,7 @@ describe('POST /users/login', () => {
             .expect(400)
             .expect(res => {
                 // assert no token in response's header and body is empty
-                expect(res.headers['x-auth']).toNotExist();
+                expect(res.headers['x-auth']).toBeFalsy();
                 expect(res.body).toEqual({});
             })
             .end((err, res) => {
